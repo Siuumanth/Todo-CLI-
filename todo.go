@@ -52,12 +52,19 @@ func main() {
 
 	defer file.Close()
 	defer saveFile(tasks, file)
+	defer handlePanic()
 
 	args := os.Args // get cmd line args
+
+	if len(args) < 2 {
+		panic("Please enter a command")
+	}
+
 	cmd := args[1]
 
 	switch cmd {
 	case "add":
+		verifyArgs(len(args), "Task name should be entered")
 		name := args[2]
 		addTask(tasks, name)
 
@@ -66,16 +73,32 @@ func main() {
 		startTask(tasks, name)
 
 	case "remove":
+		verifyArgs(len(args), "Task name should be entered")
 		name := args[2]
 		delete(tasks, name)
-		fmt.Println("Task removed Successfully \n ", tasks)
+		fmt.Println("Task removed Successfully \n ")
+		showTasks(tasks)
 
-	case "view":
-		fmt.Println(tasks)
+	case "show":
+		showTasks(tasks)
 
 	case "complete":
+		verifyArgs(len(args), "Task name should be entered")
 		name := args[2]
 		tasks[name] = "Completed"
+		fmt.Println("Task completed Successfully \n ")
+		showTasks(tasks)
+
+	case "help":
+		fmt.Println(`
+		Available commands:
+		add <task name> - Add a new task
+		start <task name> - Start a task
+		remove <task name> - Remove a task
+		show - show all tasks
+		complete <task name> - Mark a task complete
+		help - Show this message
+		`)
 
 	default:
 		fmt.Println("Not a valid command")
@@ -83,9 +106,26 @@ func main() {
 	}
 }
 
+func verifyArgs(args int, msg string) {
+	if args < 3 {
+		panic(msg)
+	}
+	if args > 3 {
+		panic("Too many arguments")
+	}
+}
+
+func handlePanic() {
+	if r := recover(); r != nil {
+		fmt.Println("Error:", r)
+	}
+}
+
 func addTask(tasks map[string]interface{}, name string) {
 	tasks[name] = "Not started"
-	fmt.Println("Task added Successfully \n ", tasks)
+	fmt.Println("Task added Successfully \n ")
+	showTasks(tasks)
+
 }
 
 func saveFile(tasks map[string]interface{}, fp *os.File) {
@@ -94,5 +134,25 @@ func saveFile(tasks map[string]interface{}, fp *os.File) {
 
 func startTask(tasks map[string]interface{}, task string) {
 	tasks[task] = "In progress"
-	fmt.Println("Task started Successfully \n ", tasks)
+	fmt.Println("Task started Successfully \n ")
+	showTasks(tasks)
+
+}
+
+func showTasks(tasks map[string]interface{}) {
+	table := [][]string{{"Task", "Status"}}
+	for task, status := range tasks {
+		table = append(table, []string{task, fmt.Sprint(status)})
+	}
+
+	fmt.Println(renderTable(table))
+}
+
+func renderTable(data [][]string) string {
+	table := "  +---------------------------------------------+\n"
+	for _, row := range data {
+		table += fmt.Sprintf("  | %-20s | %-20s |\n", row[0], row[1])
+	}
+	table += "  +---------------------------------------------+\n"
+	return table
 }
